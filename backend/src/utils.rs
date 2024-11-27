@@ -110,5 +110,7 @@ pub async fn request_tokens_from_faucet(
             tokio::time::sleep(Duration::from_secs(1)).await;
         }
     }
+
+    println!("Faucet request for address {address_str} has completed successfully");
     Ok(())
 }

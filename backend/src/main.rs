@@ -22,7 +22,8 @@ pub struct GaslessTransactionRequest {
 }
 
 
-async fn handle_gasless_transaction(Json(payload): Json<GaslessTransactionRequest>) {
+/// Gets and address and sends some tokens to it with faucet helper function
+async fn faucet(Json(payload): Json<GaslessTransactionRequest>) {
     println!("Received gasless transaction request: {:?}", payload);
 
     // lets try to send fund this address with some gas
@@ -31,10 +32,7 @@ async fn handle_gasless_transaction(Json(payload): Json<GaslessTransactionReques
 
     let address = payload.sender;
 
-    let request_from_faucet = utils::request_tokens_from_faucet(address, &iota_testnet).await.unwrap();
-
-    
-
+    let _request_from_faucet = utils::request_tokens_from_faucet(address, &iota_testnet).await.unwrap();
 
 }
 
@@ -52,7 +50,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let app = Router::new()
         .route("/", get(move || async { msg }))
-        .route("/gasless-transaction", post(handle_gasless_transaction));
+        .route("/faucet", post(faucet));
 
     // run it with hyper on localhost:3000
     axum::Server::bind(&"0.0.0.0:3001".parse().unwrap())
