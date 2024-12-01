@@ -7,11 +7,16 @@ use iota_sdk::{
         digests::TransactionDigest,
         programmable_transaction_builder::ProgrammableTransactionBuilder,
         quorum_driver_types::ExecuteTransactionRequestType,
-        transaction::{Argument, Command, Transaction, TransactionData},
+        transaction::{self, Argument, Command, Transaction, TransactionData},
     },
     wallet_context::WalletContext,
     IotaClient, IotaClientBuilder,
 };
+
+use iota_config::{
+    Config, IOTA_CLIENT_CONFIG, IOTA_KEYSTORE_FILENAME, PersistedConfig, iota_config_dir,
+};
+use iota_keys::keystore::{AccountKeystore, FileBasedKeystore};
 
 use anyhow::bail;
 use iota_sdk::rpc_types::IotaObjectDataOptions;
@@ -19,6 +24,7 @@ use serde_json::json;
 use std::{str::FromStr, time::Duration};
 
 use reqwest::Client;
+use shared_crypto::intent::Intent;
 
 pub const IOTA_FAUCET_BASE_URL: &str = "https://faucet.testnet.iota.cafe"; // testnet faucet
 
@@ -27,6 +33,7 @@ struct FaucetResponse {
     task: String,
     error: Option<String>,
 }
+
 
 /// Request tokens from the Faucet for the given address
 pub async fn request_tokens_from_faucet(
@@ -108,5 +115,26 @@ pub async fn request_tokens_from_faucet(
     }
 
     println!("Faucet request for address {address_str} has completed successfully");
+    Ok(())
+}
+
+
+/// Create signed and funded transaction
+pub async fn sign_and_fund_transaction(
+    client: &IotaClient,
+    sender: &IotaAddress,
+    tx_data: TransactionData,
+) -> Result<(), anyhow::Error> {
+    let keystore = FileBasedKeystore::new(&iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME))?;
+    let signature = keystore.sign_secure(sender, &tx_data, Intent::iota_transaction())?;
+
+
+    // TODO: Build a transaction with the signature
+    //let transaction = TransactionData::new_programmable_allow_sponsor(sender, gas_payment, pt, gas_budget, gas_price, sponsor);
+
+   
+
+
+
     Ok(())
 }
