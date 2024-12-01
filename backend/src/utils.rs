@@ -1,6 +1,4 @@
-
 use iota_sdk::{
-    IotaClient, IotaClientBuilder,
     iota_client_config::{IotaClientConfig, IotaEnv},
     rpc_types::IotaTransactionBlockResponseOptions,
     types::{
@@ -12,10 +10,11 @@ use iota_sdk::{
         transaction::{Argument, Command, Transaction, TransactionData},
     },
     wallet_context::WalletContext,
+    IotaClient, IotaClientBuilder,
 };
 
-use iota_sdk::rpc_types::IotaObjectDataOptions;
 use anyhow::bail;
+use iota_sdk::rpc_types::IotaObjectDataOptions;
 use serde_json::json;
 use std::{str::FromStr, time::Duration};
 
@@ -28,9 +27,6 @@ struct FaucetResponse {
     task: String,
     error: Option<String>,
 }
-
-
-
 
 /// Request tokens from the Faucet for the given address
 pub async fn request_tokens_from_faucet(
