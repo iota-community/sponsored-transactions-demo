@@ -45,7 +45,8 @@ async fn faucet(
     println!("Received gasless transaction request: {:?}", payload);
 
     // Simulate funding the address (replace this with your IOTA faucet logic)
-    // utils::request_tokens_from_faucet(payload.sender, &iota_testnet).await.unwrap();
+    let iota_testnet = IotaClientBuilder::default().build_testnet().await.unwrap();
+    utils::request_tokens_from_faucet(payload.sender, &iota_testnet).await.unwrap();
 
     // Respond with success
     (StatusCode::OK, Json(json!({"message": "Funds requested successfully"})))
