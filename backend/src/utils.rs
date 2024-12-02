@@ -1,30 +1,31 @@
 use iota_sdk::{
-    iota_client_config::{IotaClientConfig, IotaEnv},
-    rpc_types::IotaTransactionBlockResponseOptions,
     types::{
         base_types::{IotaAddress, ObjectID},
-        crypto::SignatureScheme::ED25519,
-        digests::TransactionDigest,
         programmable_transaction_builder::ProgrammableTransactionBuilder,
-        quorum_driver_types::ExecuteTransactionRequestType,
-        transaction::{self, Argument, Command, Transaction, TransactionData},
+        transaction::{SenderSignedData, TransactionData},
+        Identifier,
     },
-    wallet_context::WalletContext,
-    IotaClient, IotaClientBuilder,
+    IotaClient,
 };
 
 use iota_config::{
-    Config, IOTA_CLIENT_CONFIG, IOTA_KEYSTORE_FILENAME, PersistedConfig, iota_config_dir,
+    iota_config_dir, IOTA_KEYSTORE_FILENAME,
 };
 use iota_keys::keystore::{AccountKeystore, FileBasedKeystore};
 
-use anyhow::bail;
+use iota_sdk::types;
+
+use iota_sdk::types::{
+    crypto::EmptySignInfo, message_envelope::Envelope, signature::GenericSignature,
+};
+
+use anyhow::{anyhow, bail};
 use iota_sdk::rpc_types::IotaObjectDataOptions;
 use serde_json::json;
 use std::{str::FromStr, time::Duration};
 
 use reqwest::Client;
-use shared_crypto::intent::Intent;
+use shared_crypto::intent::{Intent, IntentMessage};
 
 pub const IOTA_FAUCET_BASE_URL: &str = "https://faucet.testnet.iota.cafe"; // testnet faucet
 
@@ -33,7 +34,6 @@ struct FaucetResponse {
     task: String,
     error: Option<String>,
 }
-
 
 /// Request tokens from the Faucet for the given address
 pub async fn request_tokens_from_faucet(
@@ -118,23 +118,54 @@ pub async fn request_tokens_from_faucet(
     Ok(())
 }
 
-
 /// Create signed and funded transaction
 pub async fn sign_and_fund_transaction(
     client: &IotaClient,
     sender: &IotaAddress,
-    tx_data: TransactionData,
-) -> Result<(), anyhow::Error> {
+    sponsor: &IotaAddress,
+) -> Result<Envelope<SenderSignedData, EmptySignInfo>, anyhow::Error> {
     let keystore = FileBasedKeystore::new(&iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME))?;
-    let signature = keystore.sign_secure(sender, &tx_data, Intent::iota_transaction())?;
 
+    // TODO: Consruct a subscribe transaction
+    let pt = {
+        let mut builder = ProgrammableTransactionBuilder::new();
+        let package = ObjectID::from_str("0x1")?;
+        let module = Identifier::from_str("subscribe")?;
+        let function = Identifier::from_str("subscribe")?;
+        builder
+            .move_call(package, module, function, vec![], vec![])
+            .unwrap();
+        builder.finish()
+    };
 
-    // TODO: Build a transaction with the signature
-    //let transaction = TransactionData::new_programmable_allow_sponsor(sender, gas_payment, pt, gas_budget, gas_price, sponsor);
+    let gas_coin = client
+        .coin_read_api()
+        .get_coins(*sender, None, None, None)
+        .await?
+        .data
+        .into_iter()
+        .next()
+        .ok_or(anyhow!("No coins found for sender"))?;
 
-   
+    let gas_budget = 5_000_000;
+    let gas_price = client.read_api().get_reference_gas_price().await?;
 
+    let tx = TransactionData::new_programmable_allow_sponsor(
+        *sender,
+        vec![gas_coin.object_ref()],
+        pt,
+        gas_budget,
+        gas_price,
+        *sponsor,
+    );
 
+    let signature = keystore.sign_secure(sender, &tx, Intent::iota_transaction())?;
+    let intent_msg = IntentMessage::new(Intent::iota_transaction(), tx);
 
-    Ok(())
+    let signed_tx = types::transaction::Transaction::from_generic_sig_data(
+        intent_msg.value,
+        vec![GenericSignature::Signature(signature)],
+    );
+
+    Ok(signed_tx)
 }
