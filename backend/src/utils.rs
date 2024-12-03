@@ -119,6 +119,15 @@ pub async fn request_tokens_from_faucet(
 }
 
 /// Create signed and funded transaction
+/// Supposed to return a transaction that calls:
+///│ Published Objects:                                                                              │
+// │  ┌──                                                                                             │
+// │  │ PackageID: 0xedd3cabbd8ebd2575a22b3752bcbb5d289a2c883bf520fdf9b0c1d50ed0ddb7a                 │
+// │  │ Version: 1                                                                                    │
+// │  │ Digest: 5jYzCtTT4G2KD5JgvB84yErVM6KVdgmzKmxkrkVadim1                                          │
+// │  │ Modules: sponsored_transactions_packages                                                      │
+// │  └──                                                                                             │
+// ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 pub async fn sign_and_fund_transaction(
     client: &IotaClient,
     sender: &IotaAddress,
@@ -129,8 +138,8 @@ pub async fn sign_and_fund_transaction(
     // TODO: Consruct a subscribe transaction
     let pt = {
         let mut builder = ProgrammableTransactionBuilder::new();
-        let package = ObjectID::from_str("0x1")?;
-        let module = Identifier::from_str("subscribe")?;
+        let package = ObjectID::from_str("0xedd3cabbd8ebd2575a22b3752bcbb5d289a2c883bf520fdf9b0c1d50ed0ddb7a")?;
+        let module = Identifier::from_str("sponsored_transactions_packages")?;
         let function = Identifier::from_str("subscribe")?;
         builder
             .move_call(package, module, function, vec![], vec![])
@@ -169,3 +178,5 @@ pub async fn sign_and_fund_transaction(
 
     Ok(signed_tx)
 }
+
+
