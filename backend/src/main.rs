@@ -25,7 +25,6 @@ pub struct GaslessTransactionRequest {
 
 // Shared state to keep track of addresses
 type SharedState = Arc<RwLock<HashSet<IotaAddress>>>;
-//type SharedState = HashSet<IotaAddress>;
 
 async fn faucet(
     State(state): State<Arc<RwLock<HashSet<IotaAddress>>>>,
@@ -93,7 +92,9 @@ async fn sign_and_fund_transaction(
     // Respond with success
     (
         StatusCode::OK,
-        Json(json!({"message": "Funds requested successfully"})),
+        Json(json!({"message": "Funds requested successfully",
+                    "signed_tx": signed_tx,
+    })),
     )
 }
 
