@@ -15,6 +15,7 @@ mod utils;
 use iota_sdk::types::base_types::IotaAddress;
 use iota_sdk::IotaClientBuilder;
 use serde::Deserialize;
+use std::str::FromStr;
 
 
 #[derive(Debug, Deserialize)]
@@ -59,10 +60,41 @@ async fn faucet(
 }
 
 /// Get an address from the user, and send back a signed sponsored transaction
-async fn sign_and_fund_transaction(Json(payload): Json<GaslessTransactionRequest>) {
+async fn sign_and_fund_transaction(
+    State(state): State<Arc<RwLock<HashSet<IotaAddress>>>>,
+    Json(payload): Json<GaslessTransactionRequest>) -> impl axum::response::IntoResponse {
     println!("Received gasless transaction request: {:?}", payload);
 
-    // lets try to send fund this address
+    let mut addresses = state.write().await;
+
+    if addresses.contains(&payload.sender) {
+        // Return a conflict status if the address has already requested funds
+        return (
+            StatusCode::CONFLICT,
+            Json(json!({"error": "Address already funded"})),
+        );
+    }
+
+    // Add the address to the set
+    addresses.insert(payload.sender);
+
+    println!("Received gasless transaction request: {:?}", payload);
+
+    // now lets create a signed and funded transaction
+    let iota_testnet = IotaClientBuilder::default().build_testnet().await.unwrap();
+    let sponsor = IotaAddress::from_str("0xbf293ced2593118cd231f107f341bb1ad9db39cd0497bff29d355730cf4e2bc2").unwrap();
+    let signed_tx = utils::sign_and_fund_transaction(&iota_testnet, &payload.sender, &sponsor)
+        .await
+        .unwrap();
+
+    println!("Signed and funded transaction: {:?}", signed_tx);
+
+
+    // Respond with success
+    (
+        StatusCode::OK,
+        Json(json!({"message": "Funds requested successfully"})),
+    )
 }
 
 #[tokio::main]
@@ -78,6 +110,7 @@ async fn main() -> Result<(), anyhow::Error> {
     let app = Router::new()
         .route("/", get(move || async { msg }))
         .route("/faucet", post(faucet))
+        .route("/sign_and_fund_transaction", post(sign_and_fund_transaction))
         .with_state(state);
 
     // Run the server

@@ -149,7 +149,7 @@ pub async fn sign_and_fund_transaction(
 
     let gas_coin = client
         .coin_read_api()
-        .get_coins(*sender, None, None, None)
+        .get_coins(*sponsor, None, None, None)
         .await?
         .data
         .into_iter()
