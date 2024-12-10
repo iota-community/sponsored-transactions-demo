@@ -2,7 +2,7 @@ use iota_sdk::{
     types::{
         base_types::{IotaAddress, ObjectID},
         programmable_transaction_builder::ProgrammableTransactionBuilder,
-        transaction::{SenderSignedData, TransactionData},
+        transaction::{SenderSignedData, TransactionData, Transaction},
         Identifier,
     },
     IotaClient,
@@ -135,6 +135,9 @@ pub async fn sign_and_fund_transaction(
 ) -> Result<Envelope<SenderSignedData, EmptySignInfo>, anyhow::Error> {
     let keystore = FileBasedKeystore::new(&iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME))?;
 
+    let path = iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME);
+    println!("Keystore path: {:?}", path);
+
     // TODO: Consruct a subscribe transaction
     let pt = {
         let mut builder = ProgrammableTransactionBuilder::new();
@@ -169,11 +172,15 @@ pub async fn sign_and_fund_transaction(
     );
 
     let signature = keystore.sign_secure(sender, &tx, Intent::iota_transaction())?;
+    let sponsor_signature = keystore.sign_secure(sponsor, &tx, Intent::iota_transaction())?;
+    
+
+
     let intent_msg = IntentMessage::new(Intent::iota_transaction(), tx);
 
     let signed_tx = types::transaction::Transaction::from_generic_sig_data(
         intent_msg.value,
-        vec![GenericSignature::Signature(signature)],
+        vec![GenericSignature::Signature(signature), GenericSignature::Signature(sponsor_signature)],
     );
 
     Ok(signed_tx)

@@ -14,6 +14,7 @@ mod utils;
 
 use iota_sdk::types::base_types::IotaAddress;
 use iota_sdk::IotaClientBuilder;
+use iota_sdk::{rpc_types::IotaTransactionBlockResponseOptions, types::quorum_driver_types::ExecuteTransactionRequestType};
 use serde::Deserialize;
 use std::str::FromStr;
 
@@ -81,12 +82,26 @@ async fn sign_and_fund_transaction(
 
     // now lets create a signed and funded transaction
     let iota_testnet = IotaClientBuilder::default().build_testnet().await.unwrap();
+    
+    // Change this to the sponsor address you want to use
     let sponsor = IotaAddress::from_str("0xbf293ced2593118cd231f107f341bb1ad9db39cd0497bff29d355730cf4e2bc2").unwrap();
     let signed_tx = utils::sign_and_fund_transaction(&iota_testnet, &payload.sender, &sponsor)
         .await
         .unwrap();
 
-    println!("Signed and funded transaction: {:?}", signed_tx);
+    println!("Signed and funded transaction: {:?}", signed_tx.to_tx_bytes_and_signatures());
+
+
+    let transaction_block_response = iota_testnet
+        .quorum_driver_api()
+        .execute_transaction_block(
+            signed_tx.clone(),
+            IotaTransactionBlockResponseOptions::full_content(),
+            ExecuteTransactionRequestType::WaitForLocalExecution,
+        )
+        .await.unwrap();
+
+    println!("Transaction block response: {:?}", transaction_block_response);
 
 
     // Respond with success
