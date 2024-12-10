@@ -10,14 +10,21 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+use fastcrypto::{
+    encoding::{Base64, Encoding},
+    traits::ToFromBytes,
+};
+
 mod utils;
 
 use iota_sdk::types::base_types::IotaAddress;
 use iota_sdk::IotaClientBuilder;
-use iota_sdk::{rpc_types::IotaTransactionBlockResponseOptions, types::quorum_driver_types::ExecuteTransactionRequestType};
-use serde::Deserialize;
+use iota_sdk::{
+    rpc_types::IotaTransactionBlockResponseOptions,
+    types::quorum_driver_types::ExecuteTransactionRequestType,
+};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-
 
 #[derive(Debug, Deserialize)]
 pub struct GaslessTransactionRequest {
@@ -62,7 +69,8 @@ async fn faucet(
 /// Get an address from the user, and send back a signed sponsored transaction
 async fn sign_and_fund_transaction(
     State(state): State<Arc<RwLock<HashSet<IotaAddress>>>>,
-    Json(payload): Json<GaslessTransactionRequest>) -> impl axum::response::IntoResponse {
+    Json(payload): Json<GaslessTransactionRequest>,
+) -> impl axum::response::IntoResponse {
     println!("Received gasless transaction request: {:?}", payload);
 
     let mut addresses = state.write().await;
@@ -82,34 +90,34 @@ async fn sign_and_fund_transaction(
 
     // now lets create a signed and funded transaction
     let iota_testnet = IotaClientBuilder::default().build_testnet().await.unwrap();
-    
+
     // Change this to the sponsor address you want to use
-    let sponsor = IotaAddress::from_str("0xbf293ced2593118cd231f107f341bb1ad9db39cd0497bff29d355730cf4e2bc2").unwrap();
+    let sponsor =
+        IotaAddress::from_str("0xbf293ced2593118cd231f107f341bb1ad9db39cd0497bff29d355730cf4e2bc2")
+            .unwrap();
     let signed_tx = utils::sign_and_fund_transaction(&iota_testnet, &payload.sender, &sponsor)
         .await
         .unwrap();
 
-    println!("Signed and funded transaction: {:?}", signed_tx.to_tx_bytes_and_signatures());
+    /*let transaction_block_response = iota_testnet
+    .quorum_driver_api()
+    .execute_transaction_block(
+        signed_tx.clone(),
+        IotaTransactionBlockResponseOptions::full_content().with_raw_input(),
+        ExecuteTransactionRequestType::WaitForLocalExecution,
+    )
+    .await.unwrap();*/
 
+    //println!("Transaction block response: {:?}", transaction_block_response);
 
-    let transaction_block_response = iota_testnet
-        .quorum_driver_api()
-        .execute_transaction_block(
-            signed_tx.clone(),
-            IotaTransactionBlockResponseOptions::full_content(),
-            ExecuteTransactionRequestType::WaitForLocalExecution,
-        )
-        .await.unwrap();
-
-    println!("Transaction block response: {:?}", transaction_block_response);
-
+    let data = fastcrypto::encoding::Base64::encode(bcs::to_bytes(&signed_tx).unwrap());
 
     // Respond with success
     (
         StatusCode::OK,
         Json(json!({"message": "Funds requested successfully",
-                    "signed_tx": signed_tx,
-    })),
+                        "signed_tx": data,
+        })),
     )
 }
 
@@ -126,7 +134,10 @@ async fn main() -> Result<(), anyhow::Error> {
     let app = Router::new()
         .route("/", get(move || async { msg }))
         .route("/faucet", post(faucet))
-        .route("/sign_and_fund_transaction", post(sign_and_fund_transaction))
+        .route(
+            "/sign_and_fund_transaction",
+            post(sign_and_fund_transaction),
+        )
         .with_state(state);
 
     // Run the server

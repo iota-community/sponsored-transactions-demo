@@ -2,15 +2,13 @@ use iota_sdk::{
     types::{
         base_types::{IotaAddress, ObjectID},
         programmable_transaction_builder::ProgrammableTransactionBuilder,
-        transaction::{SenderSignedData, TransactionData, Transaction},
+        transaction::{SenderSignedData, Transaction, TransactionData},
         Identifier,
     },
     IotaClient,
 };
 
-use iota_config::{
-    iota_config_dir, IOTA_KEYSTORE_FILENAME,
-};
+use iota_config::{iota_config_dir, IOTA_KEYSTORE_FILENAME};
 use iota_keys::keystore::{AccountKeystore, FileBasedKeystore};
 
 use iota_sdk::types;
@@ -141,7 +139,9 @@ pub async fn sign_and_fund_transaction(
     // TODO: Consruct a subscribe transaction
     let pt = {
         let mut builder = ProgrammableTransactionBuilder::new();
-        let package = ObjectID::from_str("0xedd3cabbd8ebd2575a22b3752bcbb5d289a2c883bf520fdf9b0c1d50ed0ddb7a")?;
+        let package = ObjectID::from_str(
+            "0xedd3cabbd8ebd2575a22b3752bcbb5d289a2c883bf520fdf9b0c1d50ed0ddb7a",
+        )?;
         let module = Identifier::from_str("sponsored_transactions_packages")?;
         let function = Identifier::from_str("subscribe")?;
         builder
@@ -171,19 +171,20 @@ pub async fn sign_and_fund_transaction(
         *sponsor,
     );
 
+    // This should be done by the sender when the tx is recieved
     let signature = keystore.sign_secure(sender, &tx, Intent::iota_transaction())?;
-    let sponsor_signature = keystore.sign_secure(sponsor, &tx, Intent::iota_transaction())?;
-    
 
+    let sponsor_signature = keystore.sign_secure(sponsor, &tx, Intent::iota_transaction())?;
 
     let intent_msg = IntentMessage::new(Intent::iota_transaction(), tx);
 
     let signed_tx = types::transaction::Transaction::from_generic_sig_data(
         intent_msg.value,
-        vec![GenericSignature::Signature(signature), GenericSignature::Signature(sponsor_signature)],
+        vec![
+            GenericSignature::Signature(signature),
+            GenericSignature::Signature(sponsor_signature),
+        ],
     );
 
     Ok(signed_tx)
 }
-
-
