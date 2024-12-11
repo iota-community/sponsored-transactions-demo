@@ -1,6 +1,7 @@
 use iota_sdk::{
     types::{
         base_types::{IotaAddress, ObjectID},
+        crypto::Signature,
         programmable_transaction_builder::ProgrammableTransactionBuilder,
         transaction::{SenderSignedData, Transaction, TransactionData},
         Identifier,
@@ -172,7 +173,7 @@ pub async fn sign_and_fund_transaction(
     );
 
     // This should be done by the sender when the tx is recieved
-    let signature = keystore.sign_secure(sender, &tx, Intent::iota_transaction())?;
+    //let signature = keystore.sign_secure(sender, &tx, Intent::iota_transaction())?;
 
     let sponsor_signature = keystore.sign_secure(sponsor, &tx, Intent::iota_transaction())?;
 
@@ -181,7 +182,7 @@ pub async fn sign_and_fund_transaction(
     let signed_tx = types::transaction::Transaction::from_generic_sig_data(
         intent_msg.value,
         vec![
-            GenericSignature::Signature(signature),
+            //GenericSignature::Signature(signature),
             GenericSignature::Signature(sponsor_signature),
         ],
     );

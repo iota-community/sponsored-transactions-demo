@@ -1,0 +1,22 @@
+[package]
+name = "sender_client_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = "0.6.20"
+hyper = { version = "0.14.27", features = ["full"] }
+tower = "0.4.13"
+iota-sdk = { git = "https://github.com/iotaledger/iota", package = "iota-sdk" }
+iota-keys = { git = "https://github.com/iotaledger/iota", package = "iota-keys" }
+iota-config = { git = "https://github.com/iotaledger/iota", package = "iota-config" }
+shared_crypto = { git = "https://github.com/iotaledger/iota", package = "shared-crypto" }
+
+tokio = { version = "1.2", features = ["full"] }
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+futures = "0.3"
+serde_json = "1.0"
+reqwest = {version = "0.11.4", features = ["json"]}
+fastcrypto = "0.1.8"
+bcs = "0.1.4"

@@ -1,2 +1,5 @@
 backend/target
+target
 sponsored_transactions_packages/build
+sender_client_rust/target
+sender_client_ts/*

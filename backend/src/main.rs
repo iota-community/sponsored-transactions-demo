@@ -99,6 +99,8 @@ async fn sign_and_fund_transaction(
         .await
         .unwrap();
 
+    let (bytes, sigs) = signed_tx.to_tx_bytes_and_signatures();
+
     /*let transaction_block_response = iota_testnet
     .quorum_driver_api()
     .execute_transaction_block(
@@ -116,7 +118,8 @@ async fn sign_and_fund_transaction(
     (
         StatusCode::OK,
         Json(json!({"message": "Funds requested successfully",
-                        "signed_tx": data,
+                        "bytes": bytes,
+                        "sigs": sigs,
         })),
     )
 }

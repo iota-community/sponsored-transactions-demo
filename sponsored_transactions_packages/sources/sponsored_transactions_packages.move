@@ -10,7 +10,7 @@ use iota::address;
         id: address,
     }
 
-    fun subscribe(ctx: &mut TxContext) {
+    public fun subscribe(ctx: &mut TxContext) {
         // get the address from the context
         let addr = ctx.sender();
 
