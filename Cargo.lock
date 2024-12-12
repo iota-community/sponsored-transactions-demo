@@ -555,6 +555,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "atty"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8"
+dependencies = [
+ "hermit-abi 0.1.19",
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "auto_ops"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1182,6 +1193,21 @@ dependencies = [
 
 [[package]]
 name = "clap"
+version = "3.2.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ea181bf566f71cb9a5d17a59e1871af638180a18fb0035c92ae62b705207123"
+dependencies = [
+ "atty",
+ "bitflags 1.3.2",
+ "clap_lex 0.2.4",
+ "indexmap 1.9.3",
+ "strsim 0.10.0",
+ "termcolor",
+ "textwrap",
+]
+
+[[package]]
+name = "clap"
 version = "4.5.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3135e7ec2ef7b10c6ed8950f0f792ed96ee093fa088608f1c76e569722700c84"
@@ -1198,7 +1224,7 @@ checksum = "30582fc632330df2bd26877bde0c1f4470d57c582bbc070376afcd04d8cb4838"
 dependencies = [
  "anstream",
  "anstyle",
- "clap_lex",
+ "clap_lex 0.7.4",
  "strsim 0.11.1",
  "terminal_size",
 ]
@@ -1213,6 +1239,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.90",
+]
+
+[[package]]
+name = "clap_lex"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2850f2f5a82cbf437dd5af4d49848fbdfc27c157c3d010345776f952765261c5"
+dependencies = [
+ "os_str_bytes",
 ]
 
 [[package]]
@@ -2698,6 +2733,15 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hermit-abi"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62b467343b94ba476dcb2500d242dadbb39557df889310ac77c5d99100aaac33"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "hermit-abi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
@@ -3243,7 +3287,7 @@ dependencies = [
  "anemo",
  "anyhow",
  "bcs",
- "clap",
+ "clap 4.5.23",
  "consensus-config",
  "csv",
  "dirs 5.0.1",
@@ -3560,7 +3604,7 @@ name = "iota-protocol-config"
 version = "0.7.0-alpha"
 source = "git+https://github.com/iotaledger/iota#55c14e81969aeecfde3538063e66bca5fe06286b"
 dependencies = [
- "clap",
+ "clap 4.5.23",
  "iota-protocol-config-macros",
  "move-vm-config",
  "schemars",
@@ -3608,7 +3652,7 @@ dependencies = [
  "async-trait",
  "base64 0.21.7",
  "bcs",
- "clap",
+ "clap 4.5.23",
  "colored",
  "fastcrypto 0.1.8 (git+https://github.com/MystenLabs/fastcrypto?rev=5f2c63266a065996d53f98156f0412782b468597)",
  "futures",
@@ -4438,7 +4482,7 @@ source = "git+https://github.com/iotaledger/iota#55c14e81969aeecfde3538063e66bca
 dependencies = [
  "anyhow",
  "bcs",
- "clap",
+ "clap 4.5.23",
  "codespan-reporting",
  "dunce",
  "hex",
@@ -4493,7 +4537,7 @@ source = "git+https://github.com/iotaledger/iota#55c14e81969aeecfde3538063e66bca
 dependencies = [
  "anyhow",
  "bcs",
- "clap",
+ "clap 4.5.23",
  "codespan",
  "colored",
  "move-abstract-interpreter",
@@ -4513,7 +4557,7 @@ source = "git+https://github.com/iotaledger/iota#55c14e81969aeecfde3538063e66bca
 dependencies = [
  "anyhow",
  "bcs",
- "clap",
+ "clap 4.5.23",
  "colored",
  "hex",
  "move-abstract-interpreter",
@@ -4953,7 +4997,7 @@ version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4161fcb6d602d4d2081af7c3a45852d875a03dd337a6bfdd6e06407b61342a43"
 dependencies = [
- "hermit-abi",
+ "hermit-abi 0.3.9",
  "libc",
 ]
 
@@ -5088,6 +5132,12 @@ name = "option-ext"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
+
+[[package]]
+name = "os_str_bytes"
+version = "6.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2355d85b9a3786f481747ced0e0ff2ba35213a1f9bd406ed906554d7af805a1"
 
 [[package]]
 name = "ouroboros"
@@ -6522,6 +6572,7 @@ dependencies = [
  "anyhow",
  "axum 0.6.20",
  "bcs",
+ "clap 3.2.25",
  "fastcrypto 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
  "hyper 0.14.31",
@@ -7274,6 +7325,12 @@ dependencies = [
  "rustix",
  "windows-sys 0.59.0",
 ]
+
+[[package]]
+name = "textwrap"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23d434d3f8967a09480fb04132ebe0a3e088c173e6d0ee7897abbdf4eab0f8b9"
 
 [[package]]
 name = "thiserror"
