@@ -31,14 +31,16 @@ pub struct GaslessTransactionRequest {
     pub sender: IotaAddress,
 }
 
-// Shared state to keep track of addresses
-type SharedState = Arc<RwLock<HashSet<IotaAddress>>>;
+// TODO: This is a simple example of a shared state. In a real-world application, you would want to use a database to store this information.
+// Shared state to keep track of addresses and total sponsored fees
+type SharedState = Arc<RwLock<(HashSet<IotaAddress>, u128)>>;
 
 async fn faucet(
-    State(state): State<Arc<RwLock<HashSet<IotaAddress>>>>,
+    State(state): State<SharedState>,
     Json(payload): Json<GaslessTransactionRequest>,
 ) -> impl axum::response::IntoResponse {
-    let mut addresses = state.write().await;
+    let mut state_guard = state.write().await;
+    let (addresses, _) = &mut *state_guard;
 
     if addresses.contains(&payload.sender) {
         // Return a conflict status if the address has already requested funds
@@ -68,12 +70,13 @@ async fn faucet(
 
 /// Get an address from the user, and send back a signed sponsored transaction
 async fn sign_and_fund_transaction(
-    State(state): State<Arc<RwLock<HashSet<IotaAddress>>>>,
+    State(state): State<SharedState>,
     Json(payload): Json<GaslessTransactionRequest>,
 ) -> impl axum::response::IntoResponse {
     println!("Received gasless transaction request: {:?}", payload);
 
-    let mut addresses = state.write().await;
+    let mut state_guard = state.write().await;
+    let (addresses, total_sponsored_fees) = &mut *state_guard;
 
     if addresses.contains(&payload.sender) {
         // Return a conflict status if the address has already requested funds
@@ -99,35 +102,32 @@ async fn sign_and_fund_transaction(
         .await
         .unwrap();
 
+    let gas_price = iota_testnet
+        .read_api()
+        .get_reference_gas_price()
+        .await
+        .unwrap();
+    // increment the total sponsored fees
+    *total_sponsored_fees += gas_price as u128;
+
     let (bytes, sigs) = signed_tx.to_tx_bytes_and_signatures();
 
-    /*let transaction_block_response = iota_testnet
-    .quorum_driver_api()
-    .execute_transaction_block(
-        signed_tx.clone(),
-        IotaTransactionBlockResponseOptions::full_content().with_raw_input(),
-        ExecuteTransactionRequestType::WaitForLocalExecution,
-    )
-    .await.unwrap();*/
-
-    //println!("Transaction block response: {:?}", transaction_block_response);
-
-    let data = fastcrypto::encoding::Base64::encode(bcs::to_bytes(&signed_tx).unwrap());
-
-    // Respond with success
+    // Respond with tx-bytes and sponsor signature
     (
         StatusCode::OK,
-        Json(json!({"message": "Funds requested successfully",
-                        "bytes": bytes,
-                        "sigs": sigs,
-        })),
+        Json(
+            json!({"message": "Transaction signed and funded successfully",
+                            "bytes": bytes,
+                            "sigs": sigs,
+            }),
+        ),
     )
 }
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     // Create shared state
-    let state: SharedState = Arc::new(RwLock::new(HashSet::new()));
+    let state: SharedState = Arc::new(RwLock::new((HashSet::new(), 0))); // (addresses, total_sponsored_fees)
 
     // Initialize IOTA client
     let iota_testnet = IotaClientBuilder::default().build_testnet().await?;
