@@ -1,19 +1,19 @@
 use fastcrypto::encoding::Encoding;
+use iota_keys::keystore::AccountKeystore;
 use iota_sdk::{
     types::{
-        base_types::{IotaAddress},
+        base_types::IotaAddress,
         crypto::{Signature, ToFromBytes},
-        transaction::{TransactionData},
+        transaction::TransactionData,
     },
     IotaClientBuilder,
 };
-use iota_keys::keystore::AccountKeystore;
 
+use anyhow::{anyhow, bail};
+use clap::{App, Arg};
 use iota_keys::keystore::FileBasedKeystore;
-use anyhow::{bail, anyhow};
 use shared_crypto::intent::{Intent, IntentMessage};
 use std::{path::PathBuf, str::FromStr};
-use clap::{App, Arg};
 
 #[tokio::main]
 async fn main() {
