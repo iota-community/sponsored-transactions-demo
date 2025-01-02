@@ -9,7 +9,7 @@ use iota_sdk::{
     IotaClientBuilder,
 };
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use clap::{App, Arg};
 use iota_keys::keystore::FileBasedKeystore;
 use shared_crypto::intent::{Intent, IntentMessage};

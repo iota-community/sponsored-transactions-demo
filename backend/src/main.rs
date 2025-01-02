@@ -10,25 +10,17 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use fastcrypto::{
-    encoding::{Base64, Encoding},
-    traits::ToFromBytes,
-};
-
 mod utils;
 
 use iota_sdk::types::base_types::IotaAddress;
 use iota_sdk::IotaClientBuilder;
-use iota_sdk::{
-    rpc_types::IotaTransactionBlockResponseOptions,
-    types::quorum_driver_types::ExecuteTransactionRequestType,
-};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::str::FromStr;
 
 #[derive(Debug, Deserialize)]
 pub struct GaslessTransactionRequest {
     pub sender: IotaAddress,
+    pub content_type: String,
 }
 
 // TODO: This is a simple example of a shared state. In a real-world application, you would want to use a database to store this information.
@@ -98,9 +90,14 @@ async fn sign_and_fund_transaction(
     let sponsor =
         IotaAddress::from_str("0xbf293ced2593118cd231f107f341bb1ad9db39cd0497bff29d355730cf4e2bc2")
             .unwrap();
-    let signed_tx = utils::sign_and_fund_transaction(&iota_testnet, &payload.sender, &sponsor)
-        .await
-        .unwrap();
+    let signed_tx = utils::sign_and_fund_transaction(
+        &iota_testnet,
+        &payload.sender,
+        &sponsor,
+        &payload.content_type,
+    )
+    .await
+    .unwrap();
 
     let gas_price = iota_testnet
         .read_api()

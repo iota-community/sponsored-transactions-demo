@@ -1,9 +1,8 @@
 use iota_sdk::{
     types::{
         base_types::{IotaAddress, ObjectID},
-        crypto::Signature,
         programmable_transaction_builder::ProgrammableTransactionBuilder,
-        transaction::{SenderSignedData, Transaction, TransactionData},
+        transaction::{CallArg, ObjectArg, SenderSignedData, TransactionData},
         Identifier,
     },
     IotaClient,
@@ -118,19 +117,20 @@ pub async fn request_tokens_from_faucet(
 }
 
 /// Create signed and funded transaction
-/// Supposed to return a transaction that calls:
-///│ Published Objects:                                                                              │
-// │  ┌──                                                                                             │
-// │  │ PackageID: 0xedd3cabbd8ebd2575a22b3752bcbb5d289a2c883bf520fdf9b0c1d50ed0ddb7a                 │
-// │  │ Version: 1                                                                                    │
-// │  │ Digest: 5jYzCtTT4G2KD5JgvB84yErVM6KVdgmzKmxkrkVadim1                                          │
-// │  │ Modules: sponsored_transactions_packages                                                      │
-// │  └──                                                                                             │
-// ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+/// Supposed to return a transaction that calls the `free_trial` function of the `sponsored_transactions_packages` package.
+// │ Published Objects:                                                                                                                       │
+// │  ┌──                                                                                                                                     │
+// │  │ PackageID: 0x2069e91c8333350bdf6bbd2991266ad33992757db7af48291adb58e7a5b0e1aa                                                         │
+// │  │ Version: 1                                                                                                                            │
+// │  │ Digest: 2EXnq389M6Vjazdv7NDetC75ahJZWdpDuUKtzNEYqjfc                                                                                  │
+// │  │ Modules: sponsored_transactions_packages                                                                                              │
+// │  └──                                                                                                                                     │
+// ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 pub async fn sign_and_fund_transaction(
     client: &IotaClient,
     sender: &IotaAddress,
     sponsor: &IotaAddress,
+    content_type: &str,
 ) -> Result<Envelope<SenderSignedData, EmptySignInfo>, anyhow::Error> {
     let keystore = FileBasedKeystore::new(&iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME))?;
 
@@ -141,12 +141,29 @@ pub async fn sign_and_fund_transaction(
     let pt = {
         let mut builder = ProgrammableTransactionBuilder::new();
         let package = ObjectID::from_str(
-            "0xedd3cabbd8ebd2575a22b3752bcbb5d289a2c883bf520fdf9b0c1d50ed0ddb7a",
+            "0x2069e91c8333350bdf6bbd2991266ad33992757db7af48291adb58e7a5b0e1aa",
         )?;
         let module = Identifier::from_str("sponsored_transactions_packages")?;
-        let function = Identifier::from_str("subscribe")?;
+        let function = Identifier::from_str("free_trial")?;
+
+        let content_type_arg = CallArg::Pure(bcs::to_bytes(content_type)?);
+
+        let object_arg = ObjectArg::SharedObject {
+            id: ObjectID::from_str(
+                "0xb05236e6ca067e3fa114bab1558f35e44097e0078aa681761faa62220858a176",
+            )?,
+            initial_shared_version: 5134.into(),
+            mutable: true,
+        };
+        let manager_object = CallArg::Object(object_arg);
         builder
-            .move_call(package, module, function, vec![], vec![])
+            .move_call(
+                package,
+                module,
+                function,
+                vec![],
+                vec![content_type_arg, manager_object],
+            )
             .unwrap();
         builder.finish()
     };
