@@ -1,5 +1,5 @@
-/// Module: sponsored_transactions_packages
-module sponsored_transactions_packages::sponsored_transactions_packages;
+/// Module: sponsored_transactions
+module sponsored_transactions::sponsored_transactions;
 
 use iota::event;
 use iota::linked_table::{Self, LinkedTable};
@@ -29,7 +29,7 @@ public struct Subscribed has copy, drop {
 }
 
 /// The OTW type for the Subscription Manager
-public struct SPONSORED_TRANSACTIONS_PACKAGES has drop {}
+public struct SPONSORED_TRANSACTIONS has drop {}
 
 /// Subscription manager struct encapsulating subscription and trial tables
 public struct SubscriptionManager has key, store {
@@ -39,7 +39,7 @@ public struct SubscriptionManager has key, store {
 }
 
 /// function init for SubscriptionManager
-fun init(otw: SPONSORED_TRANSACTIONS_PACKAGES, ctx: &mut TxContext) {
+fun init(otw: SPONSORED_TRANSACTIONS, ctx: &mut TxContext) {
     let manager = SubscriptionManager {
         id: object::new(ctx),
         subscriptions: linked_table::new<address, SubscriptionType>(ctx),
