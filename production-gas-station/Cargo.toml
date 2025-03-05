@@ -1,0 +1,16 @@
+[package]
+name = "production-gas-station"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iota-sdk = { git = "https://github.com/iotaledger/iota", package = "iota-sdk" }
+iota-keys = { git = "https://github.com/iotaledger/iota", package = "iota-keys" }
+iota-config = { git = "https://github.com/iotaledger/iota", package = "iota-config" }
+iota-types = { git = "https://github.com/iotaledger/iota", package = "iota-types" }
+iota-json-rpc-types = { git = "https://github.com/iotaledger/iota",version = "0.10.0-alpha", package = "iota-json-rpc-types" }
+iota-gas-station = { git = "https://github.com/iotaledger/gas-station" }
+shared_crypto = { git = "https://github.com/iotaledger/iota", package = "shared-crypto" }
+tokio = { version = "1.2", features = ["full"] }
+dotenv = "0.15"
+bcs = "0.1.4"
