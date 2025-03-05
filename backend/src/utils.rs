@@ -17,104 +17,10 @@ use iota_sdk::types::{
     crypto::EmptySignInfo, message_envelope::Envelope, signature::GenericSignature,
 };
 
-use anyhow::{anyhow, bail};
-use iota_sdk::rpc_types::IotaObjectDataOptions;
-use serde_json::json;
-use std::{str::FromStr, time::Duration};
+use anyhow::anyhow;
+use std::str::FromStr;
 
-use reqwest::Client;
 use shared_crypto::intent::{Intent, IntentMessage};
-
-pub const IOTA_FAUCET_BASE_URL: &str = "https://faucet.testnet.iota.cafe"; // testnet faucet
-
-#[derive(serde::Deserialize)]
-struct FaucetResponse {
-    task: String,
-    error: Option<String>,
-}
-
-/// Request tokens from the Faucet for the given address
-pub async fn request_tokens_from_faucet(
-    address: IotaAddress,
-    client: &IotaClient,
-) -> Result<(), anyhow::Error> {
-    let address_str = address.to_string();
-    let json_body = json![{
-        "FixedAmountRequest": {
-            "recipient": &address_str
-        }
-    }];
-
-    // make the request to the faucet JSON RPC API for coin
-    let reqwest_client = Client::new();
-    let resp = reqwest_client
-        .post(format!("{IOTA_FAUCET_BASE_URL}/v1/gas"))
-        .header("Content-Type", "application/json")
-        .json(&json_body)
-        .send()
-        .await?;
-    println!(
-        "Faucet request for address {address_str} has status: {}",
-        resp.status()
-    );
-    println!("Waiting for the faucet to complete the gas request...");
-    let faucet_resp: FaucetResponse = resp.json().await?;
-
-    let task_id = if let Some(err) = faucet_resp.error {
-        bail!("Faucet request was unsuccessful. Error is {err:?}")
-    } else {
-        faucet_resp.task
-    };
-
-    println!("Faucet request task id: {task_id}");
-
-    // wait for the faucet to finish the batch of token requests
-    let coin_id = loop {
-        let resp = reqwest_client
-            .get(format!("{IOTA_FAUCET_BASE_URL}/v1/status/{task_id}"))
-            .send()
-            .await?;
-        let text = resp.text().await?;
-        if text.contains("SUCCEEDED") {
-            let resp_json: serde_json::Value = serde_json::from_str(&text).unwrap();
-
-            break <&str>::clone(
-                &resp_json
-                    .pointer("/status/transferred_gas_objects/sent/0/id")
-                    .unwrap()
-                    .as_str()
-                    .unwrap(),
-            )
-            .to_string();
-        } else {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-        }
-    };
-
-    // wait until the fullnode has the coin object, and check if it has the same
-    // owner
-    loop {
-        let owner = client
-            .read_api()
-            .get_object_with_options(
-                ObjectID::from_str(&coin_id)?,
-                IotaObjectDataOptions::new().with_owner(),
-            )
-            .await?;
-
-        if owner.owner().is_some() {
-            let owner_address = owner.owner().unwrap().get_owner_address()?;
-            if owner_address == address {
-                break;
-            }
-        } else {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-        }
-    }
-
-    println!("Faucet request for address {address_str} has completed successfully");
-    Ok(())
-}
 
 /// Create signed and funded transaction
 /// Supposed to return a transaction that calls the `free_trial` function of the `sponsored_transactions_packages` package.
@@ -134,20 +40,20 @@ pub async fn sign_and_fund_transaction(
 ) -> Result<Envelope<SenderSignedData, EmptySignInfo>, anyhow::Error> {
     let keystore = FileBasedKeystore::new(&iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME))?;
 
-    let path = iota_config_dir()?.join(IOTA_KEYSTORE_FILENAME);
-    println!("Keystore path: {:?}", path);
-
-    // TODO: Consruct a subscribe transaction
     let pt = {
         let mut builder = ProgrammableTransactionBuilder::new();
+
+        // Call the `free_trial` function of the `sponsored_transactions_packages` package
         let package = ObjectID::from_str(
             "0x2069e91c8333350bdf6bbd2991266ad33992757db7af48291adb58e7a5b0e1aa",
         )?;
         let module = Identifier::from_str("sponsored_transactions_packages")?;
         let function = Identifier::from_str("free_trial")?;
 
+        // The content type is passed as a parameter to the `free_trial` function. options are "Music", "News" or "Movies"
         let content_type_arg = CallArg::Pure(bcs::to_bytes(content_type)?);
 
+        // This is the SubscriptionManager object that is used to manage subscriptions, it is a shared object.
         let object_arg = ObjectArg::SharedObject {
             id: ObjectID::from_str(
                 "0xb05236e6ca067e3fa114bab1558f35e44097e0078aa681761faa62220858a176",
@@ -168,6 +74,7 @@ pub async fn sign_and_fund_transaction(
         builder.finish()
     };
 
+    // Get the gas coin of the sponsor
     let gas_coin = client
         .coin_read_api()
         .get_coins(*sponsor, None, None, None)
@@ -189,19 +96,15 @@ pub async fn sign_and_fund_transaction(
         *sponsor,
     );
 
-    // This should be done by the sender when the tx is recieved
-    //let signature = keystore.sign_secure(sender, &tx, Intent::iota_transaction())?;
-
+    // Sign the transaction by the sponsor
     let sponsor_signature = keystore.sign_secure(sponsor, &tx, Intent::iota_transaction())?;
 
     let intent_msg = IntentMessage::new(Intent::iota_transaction(), tx);
 
+    // Now we have a signed tx, which will be sent back to the user (with tx bytes separated from the sponsor singnature)
     let signed_tx = types::transaction::Transaction::from_generic_sig_data(
         intent_msg.value,
-        vec![
-            //GenericSignature::Signature(signature),
-            GenericSignature::Signature(sponsor_signature),
-        ],
+        vec![GenericSignature::Signature(sponsor_signature)],
     );
 
     Ok(signed_tx)

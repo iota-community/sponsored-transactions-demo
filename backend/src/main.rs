@@ -27,39 +27,6 @@ pub struct GaslessTransactionRequest {
 // Shared state to keep track of addresses and total sponsored fees
 type SharedState = Arc<RwLock<(HashSet<IotaAddress>, u128)>>;
 
-async fn faucet(
-    State(state): State<SharedState>,
-    Json(payload): Json<GaslessTransactionRequest>,
-) -> impl axum::response::IntoResponse {
-    let mut state_guard = state.write().await;
-    let (addresses, _) = &mut *state_guard;
-
-    if addresses.contains(&payload.sender) {
-        // Return a conflict status if the address has already requested funds
-        return (
-            StatusCode::CONFLICT,
-            Json(json!({"error": "Address already funded"})),
-        );
-    }
-
-    // Add the address to the set
-    addresses.insert(payload.sender);
-
-    println!("Received gasless transaction request: {:?}", payload);
-
-    // Simulate funding the address (replace this with your IOTA faucet logic)
-    let iota_testnet = IotaClientBuilder::default().build_testnet().await.unwrap();
-    utils::request_tokens_from_faucet(payload.sender, &iota_testnet)
-        .await
-        .unwrap();
-
-    // Respond with success
-    (
-        StatusCode::OK,
-        Json(json!({"message": "Funds requested successfully"})),
-    )
-}
-
 /// Get an address from the user, and send back a signed sponsored transaction
 async fn sign_and_fund_transaction(
     State(state): State<SharedState>,
@@ -133,7 +100,6 @@ async fn main() -> Result<(), anyhow::Error> {
     // Build the router
     let app = Router::new()
         .route("/", get(move || async { msg }))
-        .route("/faucet", post(faucet))
         .route(
             "/sign_and_fund_transaction",
             post(sign_and_fund_transaction),
